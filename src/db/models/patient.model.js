@@ -18,12 +18,6 @@ const PatientSchema = {
     type: DataTypes.STRING,
     unique: true,
   },
-  createdAt: {
-    allowNull: false,
-    type: DataTypes.DATE,
-    field: 'created_at',
-    defaultValue: Sequelize.NOW,
-  },
 };
 
 class Patient extends Model {
@@ -36,7 +30,9 @@ class Patient extends Model {
       sequelize,
       tableName: PATIENT_TABLE,
       modelName: 'Patient',
-      timestamps: false,
+      timestamps: true,
+      updatedAt: false,
+      createdAt: 'created_at',
     };
   }
 }

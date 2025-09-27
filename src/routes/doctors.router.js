@@ -29,6 +29,7 @@ router.post('/', async (req, res, next) => {
     const newDoctor = await service.create(body);
     res.status(201).json(newDoctor);
   } catch (err) {
+    console.error(err);
     next(err);
   }
 });
