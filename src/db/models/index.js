@@ -7,7 +7,7 @@ function setupModels(sequelize) {
   Doctor.init(DoctorSchema, Doctor.config(sequelize));
   Patient.init(PatientSchema, Patient.config(sequelize));
   Message.init(MessageSchema, Message.config(sequelize));
-  
+ 
   // Set up associations
   Doctor.associate(sequelize.models);
   Patient.associate(sequelize.models);

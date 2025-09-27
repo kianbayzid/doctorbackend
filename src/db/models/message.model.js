@@ -12,19 +12,19 @@ const MessageSchema = {
   idDoctor: {
     allowNull: false,
     type: DataTypes.INTEGER,
-    field: 'doctor_id',
+    // Remove the field mapping since column name matches
     references: {
       model: 'doctors',
-      key: 'id'
+      key: 'idDoctor'  // Fixed: was 'id'
     }
   },
   idPatient: {
     allowNull: false,
     type: DataTypes.INTEGER,
-    field: 'patient_id',
+    // Remove the field mapping since column name matches
     references: {
       model: 'patients',
-      key: 'id'
+      key: 'idPatient'  // Fixed: was 'id'
     }
   },
   messageContent: {

@@ -1,6 +1,7 @@
 import express from 'express';
 import doctorsRouter from './doctors.router.js';
 import patientsRouter from './patients.router.js';
+import messagesRouter from './message.router.js';
 import twilioRouter from './twilio.router.js';
 
 function routerApi(app) {
@@ -8,6 +9,7 @@ function routerApi(app) {
   app.use('/api/v1', router);
   router.use('/doctors', doctorsRouter);
   router.use('/patients', patientsRouter);
+  router.use('/messages', messagesRouter);
   router.use('/twilio', twilioRouter);
 }
 
