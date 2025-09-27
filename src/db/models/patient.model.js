@@ -3,7 +3,7 @@ import { Model, DataTypes, Sequelize } from 'sequelize';
 const PATIENT_TABLE = 'patients';
 
 const PatientSchema = {
-  id: {
+  idPatient: {
     allowNull: false,
     autoIncrement: true,
     primaryKey: true,
