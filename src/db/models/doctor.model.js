@@ -23,12 +23,6 @@ const DoctorSchema = {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
-  createdAt: {
-    allowNull: false,
-    type: DataTypes.DATE,
-    field: 'created_at',
-    defaultValue: Sequelize.NOW,
-  },
 };
 
 class Doctor extends Model {
@@ -41,7 +35,9 @@ class Doctor extends Model {
       sequelize,
       tableName: DOCTOR_TABLE,
       modelName: 'Doctor',
-      timestamps: false,
+      timestamps: true,
+      updatedAt: false,
+      createdAt: 'created_at',
     };
   }
 }
