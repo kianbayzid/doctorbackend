@@ -9,13 +9,23 @@ class MessageService {
   }
 
   async create(data) {
-    const newMessage = await models.Message.create(data);
-    
-    // Generate TLDR asynchronously if message content exists
-    if (data.messageContent) {
-      this.generateAndUpdateTLDR(newMessage.idMessage, data.messageContent);
+    // Infer the effective type (DB default is 'voicemail' if not provided)
+    const effectiveType = data.messageType ?? 'voicemail';
+
+    // Enforce audioUrl for voicemail BEFORE hitting the DB
+    if (effectiveType === 'voicemail' && !data.audioUrl) {
+      throw new Error('audioUrl is required for voicemail messages');
     }
-    
+
+    // Ensure we persist the inferred messageType (not leave it undefined)
+    const payload = { ...data, messageType: effectiveType };
+
+    const newMessage = await models.Message.create(payload);
+
+    if (payload.messageContent) {
+      this.generateAndUpdateTLDR(newMessage.idMessage, payload.messageContent);
+    }
+
     return newMessage;
   }
 
