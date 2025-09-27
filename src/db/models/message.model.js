@@ -12,23 +12,32 @@ const MessageSchema = {
   idDoctor: {
     allowNull: false,
     type: DataTypes.INTEGER,
-    // Remove the field mapping since column name matches
     references: {
       model: 'doctors',
-      key: 'idDoctor'  // Fixed: was 'id'
-    }
+      key: 'idDoctor',
+    },
   },
   idPatient: {
     allowNull: false,
     type: DataTypes.INTEGER,
-    // Remove the field mapping since column name matches
     references: {
       model: 'patients',
-      key: 'idPatient'  // Fixed: was 'id'
-    }
+      key: 'idPatient',
+    },
   },
-  messageContent: {
+  audioUrl: {
     allowNull: false,
+    type: DataTypes.STRING,
+    field: 'audio_url',
+  },
+  recordingSid: {
+    allowNull: true,
+    type: DataTypes.STRING,
+    field: 'recording_sid',
+    unique: true,
+  }, 
+  messageContent: {
+    allowNull: true,
     type: DataTypes.TEXT,
     field: 'message_content',
   },
@@ -40,23 +49,23 @@ const MessageSchema = {
     allowNull: false,
     type: DataTypes.ENUM('voicemail', 'text', 'email'),
     field: 'message_type',
-    defaultValue: 'voicemail'
+    defaultValue: 'voicemail',
   },
   priority: {
     allowNull: false,
     type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
-    defaultValue: 'medium'
+    defaultValue: 'medium',
   },
   status: {
     allowNull: false,
     type: DataTypes.ENUM('unread', 'read', 'responded'),
-    defaultValue: 'unread'
+    defaultValue: 'unread',
   },
   isProcessed: {
     allowNull: false,
     type: DataTypes.BOOLEAN,
     field: 'is_processed',
-    defaultValue: false
+    defaultValue: false,
   },
   createdAt: {
     allowNull: false,
@@ -76,12 +85,11 @@ class Message extends Model {
   static associate(models) {
     this.belongsTo(models.Doctor, {
       foreignKey: 'idDoctor',
-      as: 'doctor'
+      as: 'doctor',
     });
-    
     this.belongsTo(models.Patient, {
       foreignKey: 'idPatient',
-      as: 'patient'
+      as: 'patient',
     });
   }
 
@@ -95,4 +103,5 @@ class Message extends Model {
   }
 }
 
+// ✅ Named exports (same style as Doctor and Patient)
 export { MESSAGE_TABLE, MessageSchema, Message };

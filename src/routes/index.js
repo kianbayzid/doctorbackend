@@ -5,7 +5,7 @@ import patientsRouter from './patients.router.js';
 import messagesRouter from './message.router.js';
 import twilioRouter from './twilio.router.js';
 
-// Auth0 auth
+// Auth0 middleware
 const checkJwt = auth({
   audience: process.env.AUTH0_AUDIENCE,
   issuerBaseURL: process.env.AUTH0_DOMAIN,
@@ -19,8 +19,6 @@ function routerApi(app) {
   router.use('/patients', checkJwt, patientsRouter);
   router.use('/messages', messagesRouter);
   router.use('/twilio', twilioRouter);
-
 }
 
 export default routerApi;
-

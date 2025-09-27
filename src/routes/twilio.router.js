@@ -40,7 +40,7 @@ router.post('/menu', async (req, res) => {
   let twiml;
   if (!doctor) {
     twiml = `<Response><Say>Invalid option. Goodbye.</Say><Hangup/></Response>`;
-  } else if (doctgitor.available) {
+  } else if (doctor.available) {
     twiml = `
       <Response>
         <Say>Connecting you to Doctor ${doctor.name}.</Say>
