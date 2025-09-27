@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest", 
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
     "migrate": "sequelize-cli db:migrate --env development"
@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@huggingface/inference": "^4.9.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
