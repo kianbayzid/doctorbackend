@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/app.js",
-    "start": "node src/app.js"
+    "start": "node src/app.js",
+    "migrate": "sequelize-cli db:migrate --env development"
   },
   "keywords": [],
   "author": "",
@@ -21,5 +22,6 @@
   "devDependencies": {
     "nodemon": "^3.1.10",
     "sequelize-cli": "^6.6.3"
-  }
+  },
+  "type": "module"
 }
