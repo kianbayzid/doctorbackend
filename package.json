@@ -1,7 +1,7 @@
 {
   "name": "doctorbackend",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/app.js",
@@ -13,16 +13,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@huggingface/inference": "^4.9.0",
+    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "pg": "^8.16.3",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "twilio": "^4.22.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
     "sequelize-cli": "^6.6.3"
-  },
-  "type": "module"
+  }
 }
