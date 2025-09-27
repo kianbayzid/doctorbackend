@@ -1,6 +1,6 @@
 
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: '.env' });
 
 import axios from 'axios';
 
@@ -39,8 +39,8 @@ describe('Doctors API', () => {
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.data.name).toBe(doctorData.name);
-    expect(createResponse.data.id).toBeDefined();
-    newDoctorId = createResponse.data.id;
+    expect(createResponse.data.idDoctor).toBeDefined();
+    newDoctorId = createResponse.data.idDoctor;
   });
 
   it('should retrieve the newly created doctor', async () => {
@@ -54,7 +54,7 @@ describe('Doctors API', () => {
     });
 
     expect(getResponse.status).toBe(200);
-    expect(getResponse.data.id).toBe(newDoctorId);
+    expect(getResponse.data.idDoctor).toBe(newDoctorId);
     expect(getResponse.data.name).toBe('Dr. Jane Smith');
   });
 });
@@ -76,8 +76,8 @@ describe('Patients API', () => {
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.data.name).toBe(patientData.name);
-    expect(createResponse.data.id).toBeDefined();
-    newPatientId = createResponse.data.id;
+    expect(createResponse.data.idPatient).toBeDefined();
+    newPatientId = createResponse.data.idPatient;
   });
 
   it('should retrieve the newly created patient', async () => {
@@ -90,7 +90,7 @@ describe('Patients API', () => {
     });
 
     expect(getResponse.status).toBe(200);
-    expect(getResponse.data.id).toBe(newPatientId);
+    expect(getResponse.data.idPatient).toBe(newPatientId);
     expect(getResponse.data.name).toBe('John Patient');
   });
 });

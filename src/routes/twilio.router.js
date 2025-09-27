@@ -6,10 +6,8 @@ const { models } = sequelize;
 const router = express.Router();
 const messageService = new MessageService();
 
-// Twilio sends x-www-form-urlencoded
 router.use(express.urlencoded({ extended: true }));
 
-// Helper to build absolute public URL (use NGROK from .env)
 function baseUrl(req) {
   return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
 }
