@@ -4,24 +4,25 @@ dotenv.config({ path: '.env.test' });
 
 import axios from 'axios';
 
-describe('Doctors API', () => {
-  let authToken;
-  let newDoctorId;
+let authToken;
 
-  beforeAll(async () => {
-    // 1. Get Bearer key from Auth0
-    const authResponse = await axios.post('https://dev-hn2kpluyia73s240.us.auth0.com/oauth/token', {
-      client_id: process.env.AUTH0_CLIENT_ID,
-      client_secret: process.env.AUTH0_CLIENT_SECRET,
-      audience: process.env.AUTH0_AUDIENCE,
-      grant_type: 'client_credentials'
-    }, {
-      headers: {
-        'content-type': 'application/json'
-      }
-    });
-    authToken = authResponse.data.access_token;
+beforeAll(async () => {
+  // 1. Get Bearer key from Auth0
+  const authResponse = await axios.post('https://dev-hn2kpluyia73s240.us.auth0.com/oauth/token', {
+    client_id: process.env.AUTH0_CLIENT_ID,
+    client_secret: process.env.AUTH0_CLIENT_SECRET,
+    audience: process.env.AUTH0_AUDIENCE,
+    grant_type: 'client_credentials'
+  }, {
+    headers: {
+      'content-type': 'application/json'
+    }
   });
+  authToken = authResponse.data.access_token;
+});
+
+describe('Doctors API', () => {
+  let newDoctorId;
 
   it('should create a new doctor', async () => {
     // 2. Post new placeholder doctor
@@ -67,7 +68,11 @@ describe('Patients API', () => {
       phone: `555-867-${Math.floor(Math.random() * 10000)}` // random phone to avoid unique constraint errors
     };
 
-    const createResponse = await axios.post('http://localhost:3000/api/v1/patients', patientData);
+    const createResponse = await axios.post('http://localhost:3000/api/v1/patients', patientData, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.data.name).toBe(patientData.name);
@@ -78,7 +83,11 @@ describe('Patients API', () => {
   it('should retrieve the newly created patient', async () => {
     expect(newPatientId).toBeDefined(); // Ensure the previous test ran and set the ID
 
-    const getResponse = await axios.get(`http://localhost:3000/api/v1/patients/${newPatientId}`);
+    const getResponse = await axios.get(`http://localhost:3000/api/v1/patients/${newPatientId}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
 
     expect(getResponse.status).toBe(200);
     expect(getResponse.data.id).toBe(newPatientId);
