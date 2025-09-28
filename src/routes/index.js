@@ -15,8 +15,10 @@ function routerApi(app) {
   const router = express.Router();
   app.use('/api/v1', router);
 
-  router.use('/doctors', checkJwt, doctorsRouter);
-  router.use('/patients', checkJwt, patientsRouter);
+  // router.use('/doctors', checkJwt, doctorsRouter);
+  // router.use('/patients', checkJwt, patientsRouter);
+  router.use('/doctors', doctorsRouter);
+  router.use('/patients', patientsRouter);
   router.use('/messages', messagesRouter);
   router.use('/twilio', twilioRouter);
 }
