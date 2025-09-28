@@ -14,4 +14,8 @@ app.get('/', (req, res) => res.send('Doctor voicemail API is running 🚀'));
 routerApi(app);
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => console.log(`Server running on port ${port}`));
+}
+
+export default app;

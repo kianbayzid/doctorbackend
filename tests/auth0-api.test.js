@@ -1,12 +1,24 @@
-
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env' });
 
 import axios from 'axios';
+import http from 'http';
+import app from '../src/app.js';
+import sequelize from '../src/libs/sequelize.js';
 
 let authToken;
+let server;
+let port;
 
 beforeAll(async () => {
+  server = http.createServer(app);
+  await new Promise(resolve => {
+    server.listen({ port: 0 }, () => {
+      port = server.address().port;
+      resolve();
+    });
+  });
+
   // 1. Get Bearer key from Auth0
   const authResponse = await axios.post('https://dev-hn2kpluyia73s240.us.auth0.com/oauth/token', {
     client_id: process.env.AUTH0_CLIENT_ID,
@@ -21,6 +33,11 @@ beforeAll(async () => {
   authToken = authResponse.data.access_token;
 });
 
+afterAll(async () => {
+  await sequelize.close();
+  await new Promise(resolve => server.close(resolve));
+});
+
 describe('Doctors API', () => {
   let newDoctorId;
 
@@ -31,7 +48,7 @@ describe('Doctors API', () => {
       phone: `555-555-${Math.floor(Math.random() * 10000)}` // random phone to avoid unique constraint errors
     };
 
-    const createResponse = await axios.post('http://localhost:3000/api/v1/doctors', doctorData, {
+    const createResponse = await axios.post(`http://localhost:${port}/api/v1/doctors`, doctorData, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -47,7 +64,7 @@ describe('Doctors API', () => {
     // 3. Retrieve newly created placeholder doctor
     expect(newDoctorId).toBeDefined(); // Ensure the previous test ran and set the ID
 
-    const getResponse = await axios.get(`http://localhost:3000/api/v1/doctors/${newDoctorId}`, {
+    const getResponse = await axios.get(`http://localhost:${port}/api/v1/doctors/${newDoctorId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -68,7 +85,7 @@ describe('Patients API', () => {
       phone: `555-867-${Math.floor(Math.random() * 10000)}` // random phone to avoid unique constraint errors
     };
 
-    const createResponse = await axios.post('http://localhost:3000/api/v1/patients', patientData, {
+    const createResponse = await axios.post(`http://localhost:${port}/api/v1/patients`, patientData, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -83,7 +100,7 @@ describe('Patients API', () => {
   it('should retrieve the newly created patient', async () => {
     expect(newPatientId).toBeDefined(); // Ensure the previous test ran and set the ID
 
-    const getResponse = await axios.get(`http://localhost:3000/api/v1/patients/${newPatientId}`, {
+    const getResponse = await axios.get(`http://localhost:${port}/api/v1/patients/${newPatientId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
