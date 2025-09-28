@@ -13,6 +13,18 @@ const DoctorSchema = {
     allowNull: false,
     type: DataTypes.STRING,
   },
+  email: {
+    allowNull: false,
+    type: DataTypes.STRING,
+    unique: true, // prevent duplicate accounts
+    validate: {
+      isEmail: true,
+    },
+  },
+  password: {
+    allowNull: false,
+    type: DataTypes.STRING,
+  },
   phone: {
     allowNull: false,
     type: DataTypes.STRING,

@@ -1,9 +1,18 @@
+import bcrypt from 'bcrypt';
 import sequelize from '../libs/sequelize.js';
+
 const { models } = sequelize;
 
 class DoctorService {
   async create(data) {
-    const newDoctor = await models.Doctor.create(data);
+    // hash password before saving
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const newDoctor = await models.Doctor.create({
+      ...data,
+      password: hashedPassword, // save hashed, not plain
+    });
+
     return newDoctor;
   }
 
@@ -16,14 +25,11 @@ class DoctorService {
   }
 
   async update(id, changes) {
-    const doctor = await this.findOne(id);
-    return await doctor.update(changes);
+    return await models.Doctor.update(changes, { where: { id } });
   }
 
   async delete(id) {
-    const doctor = await this.findOne(id);
-    await doctor.destroy();
-    return { id };
+    return await models.Doctor.destroy({ where: { id } });
   }
 }
 
