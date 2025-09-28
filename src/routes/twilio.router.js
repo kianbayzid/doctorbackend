@@ -1,10 +1,12 @@
 import express from 'express';
 import sequelize from '../libs/sequelize.js';
 import MessageService from '../services/message.service.js';
+import { HfInference } from '@huggingface/inference';
 
 const { models } = sequelize;
 const router = express.Router();
 const messageService = new MessageService();
+const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 router.use(express.urlencoded({ extended: true }));
 
@@ -12,7 +14,107 @@ function baseUrl(req) {
   return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
 }
 
-// 1) Incoming call → IVR menu
+function normalizeTranscript(txt) {
+  if (!txt) return '';
+  let t = txt.replace(/\s+/g, ' ').trim();
+  t = t.replace(/\b(hi|hello|hey)\b[,!.\s]*/i, '');
+  t = t.replace(/\b(this is|it's|i am|i'm)\b\s+[a-z]+[a-z-]*[,!.\s]*/i, '');
+  t = t.replace(/\b(how are you|thank you|thanks|bye)\b[,!.\s]*/gi, '');
+  return t.trim();
+}
+
+function cleanPhrase(p) {
+  if (!p) return '';
+  return p.replace(/\s*##/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+function compressToShortReason(phrases) {
+  const keep = [];
+  for (const p of phrases) {
+    const s = p.toLowerCase();
+    if (!keep.includes(s)) keep.push(s);
+    if (keep.length >= 2) break;
+  }
+  return keep
+    .map(s =>
+      s
+        .replace(/\brefill(s)?\b.*\b(meds?|medication|prescription)\b/, 'refill medication')
+        .replace(/\b(referral|refer)\b.*\b(meds?|medication|specialist)\b/, 'referral')
+        .replace(/\b(back|lower back)\s+pain\b/, 'back pain')
+        .replace(/\bheadaches?\b/, 'headache')
+        .replace(/\bfatigue(d)?\b/, 'fatigue')
+        .replace(/\b(appointment|follow[-\s]?up)\b/, 'follow-up')
+        .replace(/\b(results?)\b/, 'test results')
+        .replace(/\bpain\b/, 'pain')
+        .trim()
+    )
+    .join(', ');
+}
+
+async function extractClinicalReason(text) {
+  const input = normalizeTranscript(text);
+  if (!input) return '';
+
+  try {
+    const ner = await hf.tokenClassification({
+      model: 'd4data/biomedical-ner-all',
+      inputs: input,
+      parameters: { aggregation_strategy: 'simple' },
+    });
+
+    const allowedHints = [
+      'SYMPTOM', 'SIGN', 'PROBLEM', 'DISEASE', 'DISORDER', 'CONDITION',
+      'INJURY', 'PAIN'
+    ];
+    const phrases = ner
+      .filter(e => {
+        const g = (e.entity_group || '').toUpperCase();
+        return allowedHints.some(h => g.includes(h));
+      })
+      .map(e => cleanPhrase(e.word))
+      .filter(Boolean);
+
+    if (phrases.length) {
+      return compressToShortReason(phrases);
+    }
+  } catch (e) {
+    console.error('Clinical NER failed:', e);
+  }
+
+  try {
+    const kp = await hf.tokenClassification({
+      model: 'ml6team/keyphrase-extraction-distilbert-kptimes',
+      inputs: input,
+      parameters: { aggregation_strategy: 'simple' },
+    });
+    const phrases = kp
+      .map(e => cleanPhrase(e.word))
+      .filter(Boolean)
+      .filter((p, i, arr) => arr.indexOf(p) === i && p.length > 2);
+
+    if (phrases.length) {
+      return compressToShortReason(phrases);
+    }
+  } catch (e) {
+    console.error('Keyphrase extraction failed:', e);
+  }
+
+  const rules = [
+    [/refill|medication|prescription/i, 'refill medication'],
+    [/referr(al|ed)|specialist/i, 'referral'],
+    [/\b(back|lower back)\b.*\bpain\b/i, 'back pain'],
+    [/\bheadaches?\b/i, 'headache'],
+    [/\bfatigue(d)?\b/i, 'fatigue'],
+    [/follow[-\s]?up|appointment/i, 'follow-up'],
+    [/results?/i, 'test results'],
+    [/pain/i, 'pain'],
+  ];
+  for (const [re, label] of rules) {
+    if (re.test(input)) return label;
+  }
+  return '';
+}
+
 router.post('/call', async (req, res) => {
   const doctors = await models.Doctor.findAll();
   const options = doctors.map((d, idx) => `Press ${idx + 1} for Doctor ${d.name}.`).join(' ');
@@ -29,7 +131,6 @@ router.post('/call', async (req, res) => {
   res.type('text/xml').send(twiml);
 });
 
-// 2) Handle doctor selection
 router.post('/menu', async (req, res) => {
   const digit = parseInt(req.body.Digits, 10);
   const doctors = await models.Doctor.findAll();
@@ -66,10 +167,7 @@ router.post('/menu', async (req, res) => {
   res.type('text/xml').send(twiml);
 });
 
-// 3) Handle voicemail recording
 router.post('/voicemail', async (req, res) => {
-  console.log('📩 Twilio webhook hit! Body:', req.body);
-
   const { RecordingUrl, RecordingSid, From } = req.body;
   const { doctorId } = req.query;
 
@@ -86,49 +184,45 @@ router.post('/voicemail', async (req, res) => {
       idDoctor: Number(doctorId),
       idPatient: patient.idPatient,
       audioUrl: RecordingUrl,
-      recordingSid: RecordingSid,   // store sid for linking transcription
-      messageContent: null,         // will be updated by /transcription
+      recordingSid: RecordingSid,
+      messageContent: null,
       messageType: 'voicemail',
       priority: 'medium',
       status: 'unread',
     });
 
-    console.log(`✅ Voicemail saved for doctor=${doctorId}, patient=${patient.idPatient}, sid=${RecordingSid}`);
-
     res.type('text/xml').send('<Response><Say>Thank you for your message. Goodbye.</Say></Response>');
   } catch (error) {
-    console.error('❌ Error saving voicemail:', error);
     res.type('text/xml').send('<Response><Say>Sorry, something went wrong.</Say></Response>');
   }
 });
 
-// 4) Transcription arrives asynchronously
 router.post('/transcription', async (req, res) => {
-  console.log('📝 /transcription body:', req.body);
   const { RecordingSid, TranscriptionText } = req.body;
 
   try {
-    const [count] = await models.Message.update(
-      {
-        messageContent: TranscriptionText || null,
-        isProcessed: true,
-      },
-      {
-        where: { recordingSid: RecordingSid }
-      }
+    await models.Message.update(
+      { messageContent: TranscriptionText || null, isProcessed: true },
+      { where: { recordingSid: RecordingSid } }
     );
 
-    console.log(`🛠️ Transcription updated ${count} message(s) for sid=${RecordingSid}`);
+    if (TranscriptionText && TranscriptionText.trim().length > 0) {
+      const reason = await extractClinicalReason(TranscriptionText);
+      if (reason) {
+        await models.Message.update(
+          { tldr: reason },
+          { where: { recordingSid: RecordingSid } }
+        );
+      }
+    }
+
     res.type('text/xml').send('<Response/>');
   } catch (err) {
-    console.error('❌ Error updating transcription:', err);
     res.type('text/xml').send('<Response/>');
   }
 });
 
-// 5) Optional: recording status events
 router.post('/recording-status', async (req, res) => {
-  console.log('🎧 /recording-status:', req.body);
   res.type('text/xml').send('<Response/>');
 });
 
