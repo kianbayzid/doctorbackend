@@ -1,7 +1,8 @@
-
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env' });
 
+import request from 'supertest';
+import app from '../src/app.js';
 import axios from 'axios';
 
 let authToken;
@@ -19,7 +20,7 @@ beforeAll(async () => {
     }
   });
   authToken = authResponse.data.access_token;
-});
+}, 30000);
 
 describe('Doctors API', () => {
   let newDoctorId;
@@ -28,34 +29,32 @@ describe('Doctors API', () => {
     // 2. Post new placeholder doctor
     const doctorData = {
       name: 'Dr. Jane Smith',
-      phone: `555-555-${Math.floor(Math.random() * 10000)}` // random phone to avoid unique constraint errors
+      phone: `555-555-${Math.floor(Math.random() * 10000)}`, // random phone to avoid unique constraint errors
+      idAuth0: `auth0|${Math.random().toString(36).substring(2, 15)}`
     };
 
-    const createResponse = await axios.post('http://localhost:3000/api/v1/doctors', doctorData, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    const createResponse = await request(app)
+      .post('/api/v1/doctors')
+      .send(doctorData)
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(createResponse.status).toBe(201);
-    expect(createResponse.data.name).toBe(doctorData.name);
-    expect(createResponse.data.idDoctor).toBeDefined();
-    newDoctorId = createResponse.data.idDoctor;
+    expect(createResponse.body.name).toBe(doctorData.name);
+    expect(createResponse.body.idDoctor).toBeDefined();
+    newDoctorId = createResponse.body.idDoctor;
   });
 
   it('should retrieve the newly created doctor', async () => {
     // 3. Retrieve newly created placeholder doctor
     expect(newDoctorId).toBeDefined(); // Ensure the previous test ran and set the ID
 
-    const getResponse = await axios.get(`http://localhost:3000/api/v1/doctors/${newDoctorId}`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    const getResponse = await request(app)
+      .get(`/api/v1/doctors/${newDoctorId}`)
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(getResponse.status).toBe(200);
-    expect(getResponse.data.idDoctor).toBe(newDoctorId);
-    expect(getResponse.data.name).toBe('Dr. Jane Smith');
+    expect(getResponse.body.idDoctor).toBe(newDoctorId);
+    expect(getResponse.body.name).toBe('Dr. Jane Smith');
   });
 });
 
@@ -68,29 +67,26 @@ describe('Patients API', () => {
       phone: `555-867-${Math.floor(Math.random() * 10000)}` // random phone to avoid unique constraint errors
     };
 
-    const createResponse = await axios.post('http://localhost:3000/api/v1/patients', patientData, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    const createResponse = await request(app)
+      .post('/api/v1/patients')
+      .send(patientData)
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(createResponse.status).toBe(201);
-    expect(createResponse.data.name).toBe(patientData.name);
-    expect(createResponse.data.idPatient).toBeDefined();
-    newPatientId = createResponse.data.idPatient;
+    expect(createResponse.body.name).toBe(patientData.name);
+    expect(createResponse.body.idPatient).toBeDefined();
+    newPatientId = createResponse.body.idPatient;
   });
 
   it('should retrieve the newly created patient', async () => {
     expect(newPatientId).toBeDefined(); // Ensure the previous test ran and set the ID
 
-    const getResponse = await axios.get(`http://localhost:3000/api/v1/patients/${newPatientId}`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    const getResponse = await request(app)
+      .get(`/api/v1/patients/${newPatientId}`)
+      .set('Authorization', `Bearer ${authToken}`);
 
     expect(getResponse.status).toBe(200);
-    expect(getResponse.data.idPatient).toBe(newPatientId);
-    expect(getResponse.data.name).toBe('John Patient');
+    expect(getResponse.body.idPatient).toBe(newPatientId);
+    expect(getResponse.body.name).toBe('John Patient');
   });
 });

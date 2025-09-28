@@ -9,6 +9,11 @@ const DoctorSchema = {
     primaryKey: true,
     type: DataTypes.INTEGER,
   },
+  idAuth0: {
+    allowNull: true,
+    type: DataTypes.STRING,
+    unique: true,
+  },
   name: {
     allowNull: false,
     type: DataTypes.STRING,
