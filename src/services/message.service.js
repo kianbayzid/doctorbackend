@@ -23,7 +23,6 @@ class MessageService {
     return await models.Message.destroy({ where: { idMessage } });
   }
 
-  // ✅ Nuevo método: mensajes por doctor con info del paciente
   async findByDoctor(doctorId) {
     return await models.Message.findAll({
       where: { idDoctor: doctorId },
@@ -34,8 +33,44 @@ class MessageService {
           attributes: ['name', 'phone'],
         },
       ],
-      order: [['created_at', 'DESC']], // o 'createdAt' según tu modelo
+      order: [['createdAt', 'DESC']],
     });
+  }
+
+  // ✅ NUEVOS MÉTODOS
+  async markAsRead(idMessage) {
+    const [updatedRows] = await models.Message.update(
+      { status: 'read', updatedAt: new Date() }, 
+      { where: { idMessage } }
+    );
+    
+    if (updatedRows === 0) {
+      throw new Error('Message not found');
+    }
+    
+    return await models.Message.findByPk(idMessage, {
+      include: [
+        {
+          model: models.Patient,
+          as: 'patient',
+          attributes: ['idPatient', 'name', 'phone'],
+        },
+      ],
+    });
+  }
+
+  async markAllAsReadByDoctor(doctorId) {
+    const [updatedRows] = await models.Message.update(
+      { status: 'read', updatedAt: new Date() },
+      { 
+        where: { 
+          idDoctor: doctorId,
+          status: 'unread'
+        } 
+      }
+    );
+    
+    return { updatedCount: updatedRows };
   }
 }
 

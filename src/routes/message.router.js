@@ -117,6 +117,25 @@ router.get("/:idMessage/audio", async (req, res, next) => {
   }
 });
 
+router.put('/:idMessage/mark-read', async (req, res, next) => {
+  try {
+    const { idMessage } = req.params;
+    const updatedMessage = await service.markAsRead(idMessage);
+    res.json(updatedMessage);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/doctor/:doctorId/mark-all-read', async (req, res, next) => {
+  try {
+    const { doctorId } = req.params;
+    const result = await service.markAllAsReadByDoctor(doctorId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/doctor/:doctorId', async (req, res, next) => {
   try {
     const { doctorId } = req.params;

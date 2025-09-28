@@ -1,12 +1,12 @@
 import express from 'express';
 import sequelize from '../libs/sequelize.js';
 import MessageService from '../services/message.service.js';
-import { HfInference } from '@huggingface/inference';
+import { InferenceClient } from '@huggingface/inference';
 
 const { models } = sequelize;
 const router = express.Router();
 const messageService = new MessageService();
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const hf = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 
 router.use(express.urlencoded({ extended: true }));
 
