@@ -1,8 +1,11 @@
 import express from 'express';
 import PatientService from '../services/patient.service.js';
+import MessageService from '../services/message.service.js';
+import { checkPatientOwnership } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 const service = new PatientService();
+const messageService = new MessageService();
 
 router.get('/', async (req, res, next) => {
   try {
@@ -49,6 +52,17 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
     await service.delete(id);
     res.json({ id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get all messages for a specific patient
+router.get('/:id/messages', checkPatientOwnership, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const messages = await messageService.findByPatient(id);
+    res.json(messages);
   } catch (err) {
     next(err);
   }
