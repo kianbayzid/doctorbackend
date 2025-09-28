@@ -1,185 +1,41 @@
 import sequelize from '../libs/sequelize.js';
-import HuggingFaceService from './huggingface.service.js';
 
 const { models } = sequelize;
 
 class MessageService {
-  constructor() {
-    this.hfService = new HuggingFaceService();
-  }
-
-  async create(data) {
-    // Infer the effective type (DB default is 'voicemail' if not provided)
-    const effectiveType = data.messageType ?? 'voicemail';
-
-    // Enforce audioUrl for voicemail BEFORE hitting the DB
-    if (effectiveType === 'voicemail' && !data.audioUrl) {
-      throw new Error('audioUrl is required for voicemail messages');
-    }
-
-    // Ensure we persist the inferred messageType (not leave it undefined)
-    const payload = { ...data, messageType: effectiveType };
-
-    const newMessage = await models.Message.create(payload);
-
-    if (payload.messageContent) {
-      this.generateAndUpdateTLDR(newMessage.idMessage, payload.messageContent);
-    }
-
-    return newMessage;
-  }
-
   async find() {
-    return await models.Message.findAll({
-      include: [
-        {
-          model: models.Doctor,
-          as: 'doctor',
-          attributes: ['idDoctor', 'name', 'phone']
-        },
-        {
-          model: models.Patient,
-          as: 'patient',
-          attributes: ['idPatient', 'name', 'phone']
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
+    return await models.Message.findAll();
   }
 
   async findOne(idMessage) {
-    const message = await models.Message.findByPk(idMessage, {
-      include: [
-        {
-          model: models.Doctor,
-          as: 'doctor',
-          attributes: ['idDoctor', 'name', 'phone']
-        },
-        {
-          model: models.Patient,
-          as: 'patient',
-          attributes: ['idPatient', 'name', 'phone']
-        }
-      ]
-    });
-    
-    if (!message) {
-      throw new Error('Message not found');
-    }
-    
-    return message;
+    return await models.Message.findByPk(idMessage);
+  }
+
+  async create(data) {
+    return await models.Message.create(data);
   }
 
   async update(idMessage, changes) {
-    const message = await this.findOne(idMessage);
-    const updated = await message.update(changes);
-    
-    // If message content was updated, regenerate TLDR
-    if (changes.messageContent) {
-      this.generateAndUpdateTLDR(idMessage, changes.messageContent);
-    }
-    
-    return updated;
+    return await models.Message.update(changes, { where: { idMessage } });
   }
 
   async delete(idMessage) {
-    const message = await this.findOne(idMessage);
-    await message.destroy();
-    return { idMessage };
+    return await models.Message.destroy({ where: { idMessage } });
   }
 
-  // Generate TLDR asynchronously
-  async generateAndUpdateTLDR(idMessage, messageContent) {
-    try {
-      const tldr = await this.hfService.generateTLDR(messageContent);
-      await models.Message.update(
-        { tldr, isProcessed: true },
-        { where: { idMessage } }
-      );
-      console.log(`TLDR generated for message ${idMessage}`);
-    } catch (error) {
-      console.error(`Failed to generate TLDR for message ${idMessage}:`, error);
-      // Mark as processed even if TLDR generation failed
-      await models.Message.update(
-        { isProcessed: true },
-        { where: { idMessage } }
-      );
-    }
-  }
-
-  // Get messages by doctor
-  async findByDoctor(idDoctor) {
+  // ✅ Nuevo método: mensajes por doctor con info del paciente
+  async findByDoctor(doctorId) {
     return await models.Message.findAll({
-      where: { idDoctor },
+      where: { idDoctor: doctorId },
       include: [
-        {
-          model: models.Doctor,
-          as: 'doctor',
-          attributes: ['idDoctor', 'name', 'phone']
-        },
         {
           model: models.Patient,
           as: 'patient',
-          attributes: ['idPatient', 'name', 'phone']
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-  }
-
-  // Get messages by patient
-  async findByPatient(idPatient) {
-    return await models.Message.findAll({
-      where: { idPatient },
-      include: [
-        {
-          model: models.Doctor,
-          as: 'doctor',
-          attributes: ['idDoctor', 'name', 'phone']
+          attributes: ['name', 'phone'],
         },
-        {
-          model: models.Patient,
-          as: 'patient',
-          attributes: ['idPatient', 'name', 'phone']
-        }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']], // o 'createdAt' según tu modelo
     });
-  }
-
-  // Manually regenerate TLDR
-  async regenerateTLDR(idMessage) {
-    const message = await this.findOne(idMessage);
-    const tldr = await this.hfService.generateTLDR(message.messageContent);
-    return await message.update({ tldr, isProcessed: true });
-  }
-
-  // Mark message as read
-  async markAsRead(idMessage) {
-    return await this.update(idMessage, { status: 'read' });
-  }
-
-  // Mark message as responded
-  async markAsResponded(idMessage) {
-    return await this.update(idMessage, { status: 'responded' });
-  }
-
-  // Get message statistics for a doctor
-  async getMessageStats(idDoctor) {
-    const stats = await models.Message.findAll({
-      where: { idDoctor },
-      attributes: [
-        [sequelize.fn('COUNT', sequelize.col('idMessage')), 'total'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'unread' THEN 1 END")), 'unread'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'read' THEN 1 END")), 'read'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'responded' THEN 1 END")), 'responded'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN priority = 'urgent' THEN 1 END")), 'urgent'],
-        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN tldr IS NOT NULL THEN 1 END")), 'withTldr']
-      ],
-      raw: true
-    });
-
-    return stats[0];
   }
 }
 
