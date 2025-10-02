@@ -1,4 +1,4 @@
-# 🩺 Hackathon Project – Doctor–Patient NLP Assistant
+# 🩺 Hackathon Project – CareBridge
 
 ## 📌 Overview
 
